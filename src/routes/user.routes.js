@@ -1,10 +1,12 @@
 import express from 'express';
 import * as userController from '../controllers/user.controller.js';
+import authenticate from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
-router.get('get/me', userController.getMe);
-router.put('update/me', userController.updateMe);
-router.delete('delete/me', userController.deleteMe);
+router.route('/me')
+  .get(authenticate, userController.getMe)
+  .put(authenticate, userController.updateMe)
+  .delete(authenticate, userController.deleteMe);
 
 export default router;

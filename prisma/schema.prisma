@@ -21,7 +21,11 @@ model User {
   firstname    String
   lastname     String
 
-  refreshTokens RefreshToken[]
+  refreshTokens      RefreshToken[]
+  recipes            Recipe[]
+  recipeDrafts       RecipeDraft[]
+  dietaryPreferences DietaryPreference[]
+  allergens          Allergen[]
 }
 
 model RefreshToken {
@@ -31,4 +35,73 @@ model RefreshToken {
   expiresAt DateTime
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Recipe {
+  id String @id @default(uuid())
+  userId String 
+  title String @unique
+  instructions String[]
+  ingredients String[]
+  allergenNotices String[]
+  prepTimeInMinutes Int
+  cookingTimeInMinutes Int
+  servings Int
+  category Int
+  dietaryRestrictions String[]
+  difficulty String
+  ratingOutOf5 Int
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nutritionInfo NutritionInfo? @relation("RecipeNutritionInfo")
+}
+
+model RecipeDraft {
+  id String @id @default(uuid())
+  userId String 
+  title String @unique
+  instructions String[]
+  ingredients String[]
+  allergenNotices String[]
+  prepTimeInMinutes Int
+  cookingTimeInMinutes Int
+  servings Int
+  category Int
+  dietaryRestrictions String[]
+  difficulty String
+  ratingOutOf5 Int
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nutritionInfo NutritionInfo? @relation("RecipeDraftNutritionInfo")
+}
+
+model DietaryPreference {
+  id String @id @default(uuid())
+  userId String
+  name String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Allergen {
+  id String @id @default(uuid())
+  userId String
+  name String @unique
+  category String
+  severity String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model NutritionInfo {
+  id String @id @default(uuid())
+  recipeId String? @unique
+  recipeDraftId String? @unique
+  caloriesKcal Int
+  proteinG Int
+  carbsG Int
+  fatG Int
+
+  recipe Recipe? @relation("RecipeNutritionInfo", fields: [recipeId], references: [id], onDelete: Cascade)
+  recipeDraft RecipeDraft? @relation("RecipeDraftNutritionInfo", fields: [recipeDraftId], references: [id], onDelete: Cascade)
 }

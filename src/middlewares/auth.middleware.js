@@ -17,7 +17,10 @@ const authenticate = (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-        req.userId = decoded.userId;
+        req.userId = decoded.id || decoded.userId;
+        if (!req.userId) {
+            throw new HttpError(401, 'Unauthorized');
+        }
         next();
     } catch {
         throw new HttpError(401, 'Unauthorized');
