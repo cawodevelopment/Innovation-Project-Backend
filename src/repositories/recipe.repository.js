@@ -26,18 +26,49 @@ const recipeSelect = {
 };
 
 const parseRecipes = (data) => {
-    if (Array.isArray(data)) return data;
-    if (data?.recipes) return data.recipes;
-    if (data?.output) return parseRecipes(data.output);
-    if (data?.title || data?.ingredients) return [data];
+    const looksLikeRecipe = (value) =>
+        value && typeof value === 'object' && ('title' in value || 'ingredients' in value || 'instructions' in value);
+
+    if (Array.isArray(data)) {
+        if (data.every(looksLikeRecipe)) {
+            return data;
+        }
+
+        for (const item of data) {
+            const nested = parseRecipes(item);
+            if (nested?.length) {
+                return nested;
+            }
+        }
+
+        return null;
+    }
+
+    if (Array.isArray(data?.data)) {
+        return parseRecipes(data.data);
+    }
+
+    if (Array.isArray(data?.recipes)) {
+        return parseRecipes(data.recipes);
+    }
+
+    if (data?.output) {
+        return parseRecipes(data.output);
+    }
+
+    if (data?.data && typeof data.data === 'object') {
+        return parseRecipes(data.data);
+    }
+
+    if (looksLikeRecipe(data)) {
+        return [data];
+    }
+
     return null;
 };
 
 export const generateRecipeDrafts = async (userId, inputData) => {
-    const webhookUrl = process.env.N8N_WEBHOOK_URL_GENERATION;
-    if (!webhookUrl) throw new Error('N8N_WEBHOOK_URL_GENERATION is not configured');
-
-    const { data } = await axios.post(webhookUrl, inputData);
+    const { data } = await axios.post(process.env.N8N_WEBHOOK_URL_GENERATION, inputData);
     const recipes = parseRecipes(data);
 
     if (!recipes) throw new Error('Unexpected n8n response: recipes not found');
@@ -100,10 +131,7 @@ export const updateRecipe = async (userId, recipeId, refinementInput) => {
     const existing = await prisma.recipe.findFirst({ where: { id: recipeId, userId } });
     if (!existing) return null;
 
-    const webhookUrl = process.env.N8N_WEBHOOK_URL_REFINEMENT;
-    if (!webhookUrl) throw new Error('N8N_WEBHOOK_URL_REFINEMENT is not configured');
-
-    const { data } = await axios.post(webhookUrl, refinementInput);
+    const { data } = await axios.post(process.env.N8N_WEBHOOK_URL_REFINEMENT, refinementInput);
     const recipes = parseRecipes(data);
 
     if (!recipes?.length) throw new Error('Unexpected n8n response: refined recipe not found');

@@ -19,7 +19,7 @@ export const registerUser = async (firstname, lastname, email, passwordHash) => 
 
 export const saveRefreshToken = async (userId, refreshTokenHash) => {
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // Token expires in 7 days
+    expiresAt.setDate(expiresAt.getDate() + 7);
     
     return await prisma.refreshToken.create({
         data: {

@@ -11,7 +11,6 @@ const mapUserProfileResponse = (user) => ({
 });
 
 export const checkUnique = async (email) => {
-    // Check if email is unique
     const user = await userRepository.findUserByEmail(email);
 
     if (user) {
@@ -20,7 +19,6 @@ export const checkUnique = async (email) => {
 }
 
 export const getUserByEmail = async (email) => {
-    // Check if email is unique
     const user = await userRepository.findUserByEmail(email);
 
     if (!user) {
@@ -145,20 +143,17 @@ export const deleteMe = async (password, userId) => {
         throw new HttpError(400, "Password is required");
     }
 
-    // Get user by ID
     const user = await userRepository.findUserById(userId);
 
     if (!user) {
         throw new HttpError(404, "User not found");
     }
 
-    // Check if password is correct
     const isMatch = await bcrypt.compare(password, user.passwordHash);
 
     if (!isMatch) {
         throw new HttpError(401, "Invalid credentials");
     }
 
-    // Delete user by ID
     await userRepository.deleteUser(userId);
 }
