@@ -1,11 +1,11 @@
-import recipeService from '../services/recipe.service.js';
+import * as recipeService from '../services/recipe.service.js';
 
 export const generateRecipeDrafts = async (req, res) => {
-    // Generate recipe drafts based on user input
-}
-
-export const refineRecipeDraft = async (req, res) => {
-    // Refine a specific recipe draft based on user feedback
+    const drafts = await recipeService.generateRecipeDrafts(req.userId, req.body);
+    res.status(200).json({
+        success: true,
+        data: drafts
+    });
 }
 
 export const getAllRecipes = async (req, res) => {
@@ -17,23 +17,15 @@ export const getAllRecipes = async (req, res) => {
 }
 
 export const getRecipeById = async (req, res) => {
-    const recipe = await recipeService.getRecipeById(req.params.id, req.userId);
+    const recipe = await recipeService.getRecipeById(req.userId, req.params.id);
     res.status(200).json({
         success: true,
         data: recipe
     });
 }
 
-export const saveGeneratedRecipe = async (req, res) => {
-    const recipe = await recipeService.saveGeneratedRecipe(req.body, req.userId);
-    res.status(201).json({
-        success: true,
-        data: recipe
-    });
-}
-
-export const saveRefinedRecipe = async (req, res) => {
-    const recipe = await recipeService.saveRefinedRecipe(req.params.id, req.body, req.userId);
+export const updateRecipe = async (req, res) => {
+    const recipe = await recipeService.updateRecipe(req.userId, req.params.id, req.body);
     res.status(200).json({
         success: true,
         data: recipe
@@ -41,9 +33,15 @@ export const saveRefinedRecipe = async (req, res) => {
 }
 
 export const deleteRecipe = async (req, res) => {
-    await recipeService.deleteRecipe(req.params.id, req.userId);
-    res.status(204).json({
+    await recipeService.deleteRecipe(req.userId, req.params.id);
+    res.status(204).send();
+}
+
+export const saveGeneratedRecipeDraft = async (req, res) => {
+    const recipe = await recipeService.saveGeneratedRecipeDraft(req.userId, req.params.id);
+    res.status(200).json({
         success: true,
-        data: {}
+        data: recipe
     });
 }
+

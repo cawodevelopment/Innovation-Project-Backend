@@ -15,93 +15,91 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(uuid())
-  email        String        @unique
+  id           String @id @default(uuid())
+  email        String @unique
   passwordHash String
   firstname    String
   lastname     String
 
   refreshTokens      RefreshToken[]
   recipes            Recipe[]
-  recipeDrafts       RecipeDraft[]
-  dietaryPreferences DietaryPreference[]
-  allergens          Allergen[]
+  userDietaryPreferences UserDietaryPreference[]
+  userAllergens          userAllergen[]
 }
 
 model RefreshToken {
   id        String   @id @default(uuid())
   userId    String
-  token     String @unique
+  token     String   @unique
   expiresAt DateTime
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Recipe {
-  id String @id @default(uuid())
-  userId String 
-  title String @unique
-  instructions String[]
-  ingredients String[]
-  allergenNotices String[]
-  prepTimeInMinutes Int
+  id                   String       @id @default(uuid())
+  userId               String
+  title                String
+  status               RecipeStatus @default(DRAFT)
+  instructions         String[]
+  ingredients          String[]
+  allergenNotices      String[]
+  prepTimeInMinutes    Int
   cookingTimeInMinutes Int
-  servings Int
-  category Int
-  dietaryRestrictions String[]
-  difficulty String
-  ratingOutOf5 Int
+  servings             Int
+  category             Int
+  dietaryRestrictions  String[]
+  difficulty           String
+  ratingOutOf5         Int
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   nutritionInfo NutritionInfo? @relation("RecipeNutritionInfo")
 }
 
-model RecipeDraft {
-  id String @id @default(uuid())
-  userId String 
-  title String @unique
-  instructions String[]
-  ingredients String[]
-  allergenNotices String[]
-  prepTimeInMinutes Int
-  cookingTimeInMinutes Int
-  servings Int
-  category Int
-  dietaryRestrictions String[]
-  difficulty String
-  ratingOutOf5 Int
+model UserDietaryPreference {
+  id     String @id @default(uuid())
+  userId String
+  dietaryPreferenceId String
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  nutritionInfo NutritionInfo? @relation("RecipeDraftNutritionInfo")
+  dietaryPreference DietaryPreference @relation(fields: [dietaryPreferenceId], references: [id], onDelete: Cascade)
 }
 
 model DietaryPreference {
-  id String @id @default(uuid())
-  userId String
-  name String
+  id     String @id @default(uuid())
+  name   String
+
+  userDietaryPreferences UserDietaryPreference[]
+}
+
+model userAllergen {
+  id         String @id @default(uuid())
+  userId     String
+  allergenId String
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  allergen Allergen @relation(fields: [allergenId], references: [id], onDelete: Cascade)
 }
 
 model Allergen {
-  id String @id @default(uuid())
-  userId String
-  name String @unique
-  category String
-  severity String
+  id       String @id @default(uuid())
+  name     String @unique
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userAllergens userAllergen[]
 }
 
 model NutritionInfo {
-  id String @id @default(uuid())
-  recipeId String? @unique
-  recipeDraftId String? @unique
+  id           String @id @default(uuid())
+  recipeId     String @unique
   caloriesKcal Int
-  proteinG Int
-  carbsG Int
-  fatG Int
+  proteinG     Int
+  carbsG       Int
+  fatG         Int
 
-  recipe Recipe? @relation("RecipeNutritionInfo", fields: [recipeId], references: [id], onDelete: Cascade)
-  recipeDraft RecipeDraft? @relation("RecipeDraftNutritionInfo", fields: [recipeDraftId], references: [id], onDelete: Cascade)
+  recipe Recipe @relation("RecipeNutritionInfo", fields: [recipeId], references: [id], onDelete: Cascade)
+}
+
+enum RecipeStatus {
+  DRAFT
+  PUBLISHED
 }

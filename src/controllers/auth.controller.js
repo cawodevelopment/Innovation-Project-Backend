@@ -1,4 +1,4 @@
-import * as authService from '../services/auth.services.js';
+import * as authService from '../services/auth.service.js';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
