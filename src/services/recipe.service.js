@@ -1,31 +1,13 @@
 import * as recipeRepository from '../repositories/recipe.repository.js';
 import HttpError from '../errors/http.error.js';
-import prisma from '../utils/client.js';
 
 export const generateRecipeDrafts = async (userId, inputData) => {
-	const [dietaryPreferences, allergens] = await Promise.all([
-		prisma.userDietaryPreference.findMany({
-			where: { userId },
-			select: {
-				dietaryPreference: {
-					select: { name: true }
-				}
-			}
-		}),
-		prisma.userAllergen.findMany({
-			where: { userId },
-			select: {
-				allergen: {
-					select: { name: true }
-				}
-			}
-		})
-	]);
+	const { dietaryPreferences, allergens } = await recipeRepository.getUserDietaryData(userId);
 
 	const enrichedInputData = {
 		...inputData,
-		dietaryPreferences: dietaryPreferences.map((pref) => pref.dietaryPreference.name),
-		allergens: allergens.map((allergen) => allergen.allergen.name)
+		dietaryPreferences,
+		allergens
 	};
 
 	const drafts = await recipeRepository.generateRecipeDrafts(userId, enrichedInputData);
@@ -37,8 +19,8 @@ export const generateRecipeDrafts = async (userId, inputData) => {
 	return drafts;
 };
 
-export const getAllRecipes = async (userId) => {
-	return recipeRepository.getAllRecipes(userId);
+export const getAllRecipes = async (userId, filters) => {
+	return recipeRepository.getAllRecipes(userId, filters ?? {});
 };
 
 export const getRecipeById = async (userId, recipeId) => {
@@ -58,30 +40,13 @@ export const updateRecipe = async (userId, recipeId, recipeData) => {
 		throw new HttpError(404, 'Recipe not found');
 	}
 
-	const [dietaryPreferences, allergens] = await Promise.all([
-		prisma.userDietaryPreference.findMany({
-			where: { userId },
-			select: {
-				dietaryPreference: {
-					select: { name: true }
-				}
-			}
-		}),
-		prisma.userAllergen.findMany({
-			where: { userId },
-			select: {
-				allergen: {
-					select: { name: true }
-				}
-			}
-		})
-	]);
+	const { dietaryPreferences, allergens } = await recipeRepository.getUserDietaryData(userId);
 
     const refinementInput = {
         prompt: recipeData.prompt,
         oldRecipe,
-		dietaryPreferences: dietaryPreferences.map((pref) => pref.dietaryPreference.name),
-		allergens: allergens.map((allergen) => allergen.allergen.name)
+		dietaryPreferences,
+		allergens
     };
 
 

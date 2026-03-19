@@ -9,7 +9,7 @@ export const generateRecipeDrafts = async (req, res) => {
 }
 
 export const getAllRecipes = async (req, res) => {
-    const recipes = await recipeService.getAllRecipes(req.userId);
+    const recipes = await recipeService.getAllRecipes(req.userId, req.query);
     res.status(200).json({
         success: true,
         data: recipes

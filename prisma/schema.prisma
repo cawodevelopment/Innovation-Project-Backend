@@ -47,7 +47,6 @@ model Recipe {
   prepTimeInMinutes    Int
   cookingTimeInMinutes Int
   servings             Int
-  category             Int
   dietaryRestrictions  String[]
   difficulty           String
   ratingOutOf5         Int

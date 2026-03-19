@@ -1,14 +1,5 @@
 import * as authService from '../services/auth.service.js';
 
-const isProduction = process.env.NODE_ENV === 'production';
-
-const buildCookieOptions = (maxAge, sameSite = 'lax') => ({
-    httpOnly: true,
-    secure: isProduction,
-    sameSite,
-    maxAge
-});
-
 export const stripNonNumbers = (expiration) => {
   if (typeof expiration !== 'string') return '';
 
@@ -30,17 +21,19 @@ export const registerUser = async (req, res) => {
 export const loginUser = async (req, res) => {
     const { accessToken, refreshToken } = await authService.loginUser(req.body);
 
-    res.cookie(
-        'refreshToken',
-        refreshToken,
-        buildCookieOptions(stripNonNumbers(process.env.REFRESH_TOKEN_EXPIRES_IN) * 24 * 60 * 60 * 1000)
-    );
+    res.cookie('refreshToken', refreshToken, {
+        httpOnly: process.env.NODE_ENV === 'production',
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: stripNonNumbers(process.env.REFRESH_TOKEN_EXPIRES_IN) * 24 * 60 * 60 * 1000 
+    });
 
-    res.cookie(
-        'accessToken',
-        accessToken,
-        buildCookieOptions(stripNonNumbers(process.env.ACCESS_TOKEN_EXPIRES_IN) * 60 * 1000)
-    );
+    res.cookie('accessToken', accessToken, {
+        httpOnly: process.env.NODE_ENV === 'production',
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: stripNonNumbers(process.env.ACCESS_TOKEN_EXPIRES_IN) * 60 * 1000 
+    });
 
     res.status(200).json({
         success: true,
@@ -64,13 +57,23 @@ export const refreshToken = async (req, res) => {
     res.cookie(
         'refreshToken',
         newRefreshToken,
-        buildCookieOptions(stripNonNumbers(process.env.REFRESH_TOKEN_EXPIRES_IN) * 24 * 60 * 60 * 1000)
+        {
+            httpOnly: process.env.NODE_ENV === 'production',
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: stripNonNumbers(process.env.REFRESH_TOKEN_EXPIRES_IN) * 24 * 60 * 60 * 1000
+        }
     );
 
     res.cookie(
         'accessToken',
         accessToken,
-        buildCookieOptions(stripNonNumbers(process.env.ACCESS_TOKEN_EXPIRES_IN) * 60 * 1000)
+        {
+            httpOnly: process.env.NODE_ENV === 'production',
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: stripNonNumbers(process.env.ACCESS_TOKEN_EXPIRES_IN) * 60 * 1000
+        }
     );
 
     res.status(200).json({
