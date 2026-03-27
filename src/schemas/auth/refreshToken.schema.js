@@ -1,5 +1,9 @@
 import { z } from 'zod';
 
-const refreshTokenSchema = z.object({}).strict();
+const refreshTokenSchema = z
+	.object({
+		refreshToken: z.string().min(1).optional()
+	})
+	.strict();
 
 export default refreshTokenSchema;

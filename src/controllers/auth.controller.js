@@ -9,6 +9,28 @@ export const stripNonNumbers = (expiration) => {
     .join('');
 }
 
+const getRefreshTokenFromRequest = (req) => {
+    const bodyToken = req.body?.refreshToken;
+    if (typeof bodyToken === 'string' && bodyToken.trim().length > 0) {
+        return bodyToken.trim();
+    }
+
+    const authHeader = req.headers.authorization;
+    if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+        const bearerToken = authHeader.slice(7).trim();
+        if (bearerToken.length > 0) {
+            return bearerToken;
+        }
+    }
+
+    const cookieToken = req.cookies?.refreshToken;
+    if (typeof cookieToken === 'string' && cookieToken.trim().length > 0) {
+        return cookieToken.trim();
+    }
+
+    return null;
+};
+
 export const registerUser = async (req, res) => {
     const newUser = await authService.registerUser(req.body);
     res.status(201).json({
@@ -46,7 +68,7 @@ export const loginUser = async (req, res) => {
 }
 
 export const refreshToken = async (req, res) => {
-    const refreshToken = req.cookies?.refreshToken;
+    const refreshToken = getRefreshTokenFromRequest(req);
 
     if (!refreshToken) {
         return res.status(401).json({ success: false, message: 'No refresh token provided' });
@@ -87,7 +109,7 @@ export const refreshToken = async (req, res) => {
 }
 
 export const logoutUser = async (req, res) => {
-    const refreshToken = req.cookies?.refreshToken;
+    const refreshToken = getRefreshTokenFromRequest(req);
 
     await authService.logoutUser(refreshToken);
 
