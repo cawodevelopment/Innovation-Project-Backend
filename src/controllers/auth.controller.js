@@ -113,8 +113,8 @@ export const logoutUser = async (req, res) => {
 
     await authService.logoutUser(refreshToken);
 
-    res.clearCookie('refreshToken', buildCookieOptions(0));
-    res.clearCookie('accessToken', buildCookieOptions(0));
+    res.clearCookie('refreshToken');
+    res.clearCookie('accessToken');
 
     res.status(204).json();
 }
