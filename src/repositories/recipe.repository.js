@@ -272,17 +272,23 @@ export const generateRecipeDrafts = async (userId, inputData) => {
 
 export const getAllRecipes = async (userId, filters = {}) => {
     const safeFilters = filters && typeof filters === 'object' && !Array.isArray(filters) ? filters : {};
+    const searchTerm = safeFilters.name ?? safeFilters.search ?? safeFilters.query ?? safeFilters.title;
 
     const normalized = {
         difficulty: safeFilters.difficulty ? String(safeFilters.difficulty).trim() : undefined,
-        minPrepTimeInMinutes: toNumber(safeFilters.minPrepTimeInMinutes, { min: 0, integer: true }),
-        maxPrepTimeInMinutes: toNumber(safeFilters.maxPrepTimeInMinutes, { min: 0, integer: true }),
-        minCookingTimeInMinutes: toNumber(safeFilters.minCookingTimeInMinutes, { min: 0, integer: true }),
-        maxCookingTimeInMinutes: toNumber(safeFilters.maxCookingTimeInMinutes, { min: 0, integer: true }),
+        searchTerm: searchTerm ? String(searchTerm).trim() : undefined,
+        minTotalTimeInMinutes: toNumber(
+            safeFilters.minTotalTimeInMinutes ?? safeFilters.minTimeInMinutes,
+            { min: 0, integer: true }
+        ),
+        maxTotalTimeInMinutes: toNumber(
+            safeFilters.maxTotalTimeInMinutes ?? safeFilters.maxTimeInMinutes,
+            { min: 0, integer: true }
+        ),
         minServings: toNumber(safeFilters.minServings, { min: 1, integer: true }),
         maxServings: toNumber(safeFilters.maxServings, { min: 1, integer: true }),
-        minRating: toNumber(safeFilters.minRating, { min: 0, max: 5 }),
-        maxRating: toNumber(safeFilters.maxRating, { min: 0, max: 5 }),
+        minRating: toNumber(safeFilters.minRating, { min: 0, max: 5, integer: true }),
+        maxRating: toNumber(safeFilters.maxRating, { min: 0, max: 5, integer: true }),
         dietaryPreferences: splitCsv(safeFilters.dietaryPreferences),
         excludeAllergens: splitCsv(safeFilters.excludeAllergens)
     };
@@ -299,23 +305,10 @@ export const getAllRecipes = async (userId, filters = {}) => {
         };
     }
 
-    if (
-        normalized.minPrepTimeInMinutes !== undefined ||
-        normalized.maxPrepTimeInMinutes !== undefined
-    ) {
-        where.prepTimeInMinutes = {
-            ...(normalized.minPrepTimeInMinutes !== undefined && { gte: normalized.minPrepTimeInMinutes }),
-            ...(normalized.maxPrepTimeInMinutes !== undefined && { lte: normalized.maxPrepTimeInMinutes })
-        };
-    }
-
-    if (
-        normalized.minCookingTimeInMinutes !== undefined ||
-        normalized.maxCookingTimeInMinutes !== undefined
-    ) {
-        where.cookingTimeInMinutes = {
-            ...(normalized.minCookingTimeInMinutes !== undefined && { gte: normalized.minCookingTimeInMinutes }),
-            ...(normalized.maxCookingTimeInMinutes !== undefined && { lte: normalized.maxCookingTimeInMinutes })
+    if (normalized.searchTerm) {
+        where.title = {
+            contains: normalized.searchTerm,
+            mode: 'insensitive'
         };
     }
 
@@ -347,10 +340,39 @@ export const getAllRecipes = async (userId, filters = {}) => {
         };
     }
 
-    return prisma.recipe.findMany({
+    const recipes = await prisma.recipe.findMany({
         where,
         select: recipeSelect,
         orderBy: { title: 'asc' }
+    });
+
+    if (
+        normalized.minTotalTimeInMinutes === undefined &&
+        normalized.maxTotalTimeInMinutes === undefined
+    ) {
+        return recipes;
+    }
+
+    return recipes.filter((recipe) => {
+        const totalTimeInMinutes =
+            (Number(recipe.prepTimeInMinutes) || 0) +
+            (Number(recipe.cookingTimeInMinutes) || 0);
+
+        if (
+            normalized.minTotalTimeInMinutes !== undefined &&
+            totalTimeInMinutes < normalized.minTotalTimeInMinutes
+        ) {
+            return false;
+        }
+
+        if (
+            normalized.maxTotalTimeInMinutes !== undefined &&
+            totalTimeInMinutes > normalized.maxTotalTimeInMinutes
+        ) {
+            return false;
+        }
+
+        return true;
     });
 };
 

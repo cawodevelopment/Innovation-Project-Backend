@@ -82,7 +82,7 @@ export const addUserDietaryPreference = async (userId, preferenceName) => {
     });
 
     if (!preference) {
-        return null;
+        return { status: 'not_found' };
     }
 
     const existingLink = await prisma.userDietaryPreference.findFirst({
@@ -96,10 +96,13 @@ export const addUserDietaryPreference = async (userId, preferenceName) => {
     });
 
     if (existingLink) {
-        return existingLink;
+        return {
+            status: 'duplicate',
+            data: existingLink
+        };
     }
 
-    return await prisma.userDietaryPreference.create({
+    const created = await prisma.userDietaryPreference.create({
         data: {
             userId,
             dietaryPreferenceId: preference.id
@@ -108,6 +111,11 @@ export const addUserDietaryPreference = async (userId, preferenceName) => {
             dietaryPreference: true
         }
     });
+
+    return {
+        status: 'created',
+        data: created
+    };
 }
 
 export const addUserAllergen = async (userId, allergenName) => {
@@ -116,7 +124,7 @@ export const addUserAllergen = async (userId, allergenName) => {
     });
 
     if (!allergen) {
-        return null;
+        return { status: 'not_found' };
     }
 
     const existingLink = await prisma.userAllergen.findFirst({
@@ -130,10 +138,13 @@ export const addUserAllergen = async (userId, allergenName) => {
     });
 
     if (existingLink) {
-        return existingLink;
+        return {
+            status: 'duplicate',
+            data: existingLink
+        };
     }
 
-    return await prisma.userAllergen.create({
+    const created = await prisma.userAllergen.create({
         data: {
             userId,
             allergenId: allergen.id
@@ -142,6 +153,11 @@ export const addUserAllergen = async (userId, allergenName) => {
             allergen: true
         }
     });
+
+    return {
+        status: 'created',
+        data: created
+    };
 }
 
 export const removeUserDietaryPreference = async (userId, preferenceName) => {

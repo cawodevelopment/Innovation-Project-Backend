@@ -37,7 +37,7 @@ export const updateRecipe = async (userId, recipeId, recipeData) => {
     const oldRecipe = await recipeRepository.getRecipeByIdForUser(userId, recipeId);
 
     if (!oldRecipe) {
-		throw new HttpError(404, 'Recipe not found');
+		throw new HttpError(403, 'You do not have permission to refine this recipe');
 	}
 
 	const { dietaryPreferences, allergens } = await recipeRepository.getUserDietaryData(userId);

@@ -67,13 +67,17 @@ export const addUserDietaryPreference = async (userId, preferenceName) => {
         throw new HttpError(404, "User not found");
     }
 
-    const created = await userRepository.addUserDietaryPreference(userId, preferenceName.trim());
+    const result = await userRepository.addUserDietaryPreference(userId, preferenceName.trim());
 
-    if (!created) {
+    if (result.status === 'not_found') {
         throw new HttpError(404, "Dietary preference not found");
     }
 
-    return created.dietaryPreference.name;
+    if (result.status === 'duplicate') {
+        throw new HttpError(409, "Dietary preference already added for user");
+    }
+
+    return result.data.dietaryPreference.name;
 }
 
 export const addUserAllergen = async (userId, allergenName) => {
@@ -83,13 +87,17 @@ export const addUserAllergen = async (userId, allergenName) => {
         throw new HttpError(404, "User not found");
     }
 
-    const created = await userRepository.addUserAllergen(userId, allergenName.trim());
+    const result = await userRepository.addUserAllergen(userId, allergenName.trim());
 
-    if (!created) {
+    if (result.status === 'not_found') {
         throw new HttpError(404, "Allergen not found");
     }
 
-    return created.allergen.name;
+    if (result.status === 'duplicate') {
+        throw new HttpError(409, "Allergen already added for user");
+    }
+
+    return result.data.allergen.name;
 }
 
 export const removeUserDietaryPreference = async (userId, preferenceName) => {
