@@ -23,6 +23,10 @@ export const getAllRecipes = async (userId, filters) => {
 	return recipeRepository.getAllRecipes(userId, filters ?? {});
 };
 
+export const getRecipeDrafts = async (userId) => {
+	return recipeRepository.getRecipeDrafts(userId);
+}
+
 export const getRecipeById = async (userId, recipeId) => {
 	const recipe = await recipeRepository.getRecipeById(userId, recipeId);
 

@@ -76,7 +76,7 @@ export const getRefreshTokens = async (userId) => {
 }
 
 export const deleteRefreshToken = async (tokenId) => {
-    return await prisma.refreshToken.delete({
+    return await prisma.refreshToken.deleteMany({
         where: { id: tokenId }
     });
 }

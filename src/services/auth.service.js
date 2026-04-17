@@ -88,7 +88,10 @@ export const refreshToken = async (refreshToken) => {
         throw new HttpError(401, 'Refresh token expired or invalid');
     }
 
-    await authRepository.deleteRefreshToken(matchedToken.id);
+    const deleted = await authRepository.deleteRefreshToken(matchedToken.id);
+    if (!deleted?.count) {
+        throw new HttpError(401, 'Refresh token already rotated or invalid');
+    }
 
     const user = await authRepository.findUserById(payload.id);
 

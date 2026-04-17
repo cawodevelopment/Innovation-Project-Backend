@@ -52,14 +52,105 @@ const tryParseJson = (value) => {
     return null;
 };
 
+const extractFirstBalancedJson = (text) => {
+    let startIndex = -1;
+    let opening = null;
+    let closing = null;
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+
+    for (let i = 0; i < text.length; i += 1) {
+        const char = text[i];
+
+        if (startIndex === -1) {
+            if (char === '{' || char === '[') {
+                startIndex = i;
+                opening = char;
+                closing = char === '{' ? '}' : ']';
+                depth = 1;
+            }
+
+            continue;
+        }
+
+        if (inString) {
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+
+            if (char === '\\') {
+                escaped = true;
+                continue;
+            }
+
+            if (char === '"') {
+                inString = false;
+            }
+
+            continue;
+        }
+
+        if (char === '"') {
+            inString = true;
+            continue;
+        }
+
+        if (char === opening) {
+            depth += 1;
+            continue;
+        }
+
+        if (char === closing) {
+            depth -= 1;
+            if (depth === 0) {
+                return text.slice(startIndex, i + 1);
+            }
+        }
+    }
+
+    return null;
+};
+
 const parseRecipes = (data, seen = new Set()) => {
     const looksLikeRecipe = (value) =>
         value && typeof value === 'object' && ('title' in value || 'ingredients' in value || 'instructions' in value);
+
+    const unwrapOutputRecipesEnvelope = (value) => {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) {
+            return null;
+        }
+
+        const nestedOutput = value.output;
+        if (
+            nestedOutput &&
+            typeof nestedOutput === 'object' &&
+            !Array.isArray(nestedOutput) &&
+            Array.isArray(nestedOutput.recipes)
+        ) {
+            return nestedOutput.recipes;
+        }
+
+        if (Array.isArray(value.recipes)) {
+            return value.recipes;
+        }
+
+        return null;
+    };
 
     if (typeof data === 'string') {
         const parsed = tryParseJson(data);
         if (parsed !== null) {
             return parseRecipes(parsed, seen);
+        }
+
+        const extracted = extractFirstBalancedJson(data);
+        if (extracted) {
+            const extractedParsed = tryParseJson(extracted);
+            if (extractedParsed !== null) {
+                return parseRecipes(extractedParsed, seen);
+            }
         }
 
         return null;
@@ -76,6 +167,17 @@ const parseRecipes = (data, seen = new Set()) => {
     seen.add(data);
 
     if (Array.isArray(data)) {
+        if (data.length === 1) {
+            const envelopeRecipes = unwrapOutputRecipesEnvelope(data[0]);
+            if (envelopeRecipes) {
+                return parseRecipes(envelopeRecipes, seen);
+            }
+        }
+
+        if (data.length === 1 && data[0] && typeof data[0] === 'object' && 'json' in data[0]) {
+            return parseRecipes(data[0].json, seen);
+        }
+
         if (data.every(looksLikeRecipe)) {
             return data;
         }
@@ -94,6 +196,11 @@ const parseRecipes = (data, seen = new Set()) => {
         return [data];
     }
 
+    const envelopeRecipes = unwrapOutputRecipesEnvelope(data);
+    if (envelopeRecipes) {
+        return parseRecipes(envelopeRecipes, seen);
+    }
+
     const commonContainers = [
         data.data,
         data.recipes,
@@ -105,7 +212,10 @@ const parseRecipes = (data, seen = new Set()) => {
         data.body,
         data.content,
         data.text,
-        data.message
+        data.message,
+        data.json,
+        data.item,
+        data.items
     ];
 
     for (const container of commonContainers) {
@@ -376,6 +486,13 @@ export const getAllRecipes = async (userId, filters = {}) => {
     });
 };
 
+export const getRecipeDrafts = async (userId) => {
+    return prisma.recipe.findMany({
+        where: { userId, status: 'DRAFT' },
+        select: recipeSelect
+    });
+};
+
 export const getRecipeById = async (userId, recipeId) => {
     return prisma.recipe.findFirst({
         where: { id: recipeId, userId, status: 'PUBLISHED' },
@@ -391,13 +508,31 @@ export const getRecipeByIdForUser = async (userId, recipeId) => {
 };
 
 export const updateRecipe = async (userId, recipeId, refinementInput) => {
-    const existing = await prisma.recipe.findFirst({ where: { id: recipeId, userId } });
+    const existing = await prisma.recipe.findFirst({
+        where: { id: recipeId, userId },
+        select: recipeSelect
+    });
     if (!existing) return null;
 
     const { data } = await axios.post(process.env.N8N_WEBHOOK_URL_REFINEMENT, refinementInput);
     const recipes = parseRecipes(data);
 
-    if (!recipes?.length) throw new Error('Unexpected n8n response: refined recipe not found');
+    if (!recipes?.length) {
+        const shape = Array.isArray(data)
+            ? `array(${data.length})`
+            : data && typeof data === 'object'
+                ? `object:${Object.keys(data).slice(0, 12).join(', ') || 'empty'}`
+                : typeof data;
+
+        const preview = typeof data === 'string'
+            ? data.trim().slice(0, 240)
+            : JSON.stringify(data)?.slice(0, 240);
+
+        throw new HttpError(
+            502,
+            `Unexpected n8n refinement response: refined recipe not found (received: ${shape}${preview ? `, preview: ${preview}` : ''})`
+        );
+    }
 
     const r = recipes[0];
     const nutrition = r.nutritionInfo ?? existing.nutritionInfo;

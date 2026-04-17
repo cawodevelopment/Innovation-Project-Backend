@@ -12,6 +12,8 @@ router.route('/')
     .post(authenticate, validate(generateRecipeDraftsSchema), recipeController.generateRecipeDrafts)
     .get(authenticate, recipeController.getAllRecipes);
 
+router.get('/drafts', authenticate, recipeController.getRecipeDrafts);
+
 router.route('/:id')
     .get(authenticate, recipeController.getRecipeById)
     .put(authenticate, validate(updateRecipeSchema), recipeController.updateRecipe)

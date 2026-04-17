@@ -16,6 +16,14 @@ export const getAllRecipes = async (req, res) => {
     });
 }
 
+export const getRecipeDrafts = async (req, res) => {
+    const drafts = await recipeService.getRecipeDrafts(req.userId);
+    res.status(200).json({
+        success: true,
+        data: drafts
+    });
+}
+
 export const getRecipeById = async (req, res) => {
     const recipe = await recipeService.getRecipeById(req.userId, req.params.id);
     res.status(200).json({
