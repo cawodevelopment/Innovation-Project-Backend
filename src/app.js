@@ -12,9 +12,13 @@ import { authLimiter, apiLimiter } from './middlewares/rateLimit.middleware.js';
 const app = express();
 
 app.use(helmet());
+app.set('trust proxy', 1);
+
+const frontendOrigin = process.env.FRONTEND_ORIGIN?.replace(/\/$/, '');
+
 app.use(
 	cors({
-		origin: process.env.FRONTEND_ORIGIN,
+		origin: frontendOrigin,
 		credentials: true
 	})
 );

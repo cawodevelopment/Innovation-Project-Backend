@@ -43,17 +43,19 @@ export const registerUser = async (req, res) => {
 export const loginUser = async (req, res) => {
     const { accessToken, refreshToken } = await authService.loginUser(req.body);
 
-    res.cookie('refreshToken', refreshToken, {
+    const cookieOptions = {
         httpOnly: process.env.NODE_ENV === 'production',
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+    };
+
+    res.cookie('refreshToken', refreshToken, {
+        ...cookieOptions,
         maxAge: stripNonNumbers(process.env.REFRESH_TOKEN_EXPIRES_IN) * 24 * 60 * 60 * 1000 
     });
 
     res.cookie('accessToken', accessToken, {
-        httpOnly: process.env.NODE_ENV === 'production',
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        ...cookieOptions,
         maxAge: stripNonNumbers(process.env.ACCESS_TOKEN_EXPIRES_IN) * 60 * 1000 
     });
 
@@ -82,7 +84,7 @@ export const refreshToken = async (req, res) => {
         {
             httpOnly: process.env.NODE_ENV === 'production',
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
             maxAge: stripNonNumbers(process.env.REFRESH_TOKEN_EXPIRES_IN) * 24 * 60 * 60 * 1000
         }
     );
@@ -93,7 +95,7 @@ export const refreshToken = async (req, res) => {
         {
             httpOnly: process.env.NODE_ENV === 'production',
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
             maxAge: stripNonNumbers(process.env.ACCESS_TOKEN_EXPIRES_IN) * 60 * 1000
         }
     );
@@ -113,8 +115,13 @@ export const logoutUser = async (req, res) => {
 
     await authService.logoutUser(refreshToken);
 
-    res.clearCookie('refreshToken');
-    res.clearCookie('accessToken');
+    const cookieOptions = {
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+    };
+
+    res.clearCookie('refreshToken', cookieOptions);
+    res.clearCookie('accessToken', cookieOptions);
 
     res.status(204).json();
 }
