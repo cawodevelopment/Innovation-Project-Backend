@@ -14,6 +14,13 @@ const app = express();
 app.use(helmet());
 app.set('trust proxy', 1);
 
+app.get('/health', (req, res) => {
+	res.status(200).json({
+		success: true,
+		message: 'OK'
+	});
+});
+
 const frontendOrigin = process.env.FRONTEND_ORIGIN?.replace(/\/$/, '');
 
 app.use(
