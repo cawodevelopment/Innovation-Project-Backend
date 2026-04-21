@@ -383,6 +383,10 @@ export const generateRecipeDrafts = async (userId, inputData) => {
 export const getAllRecipes = async (userId, filters = {}) => {
     const safeFilters = filters && typeof filters === 'object' && !Array.isArray(filters) ? filters : {};
     const searchTerm = safeFilters.name ?? safeFilters.search ?? safeFilters.query ?? safeFilters.title;
+    const page = toNumber(safeFilters.page, { min: 1, integer: true }) ?? 1;
+    const requestedLimit = toNumber(safeFilters.limit, { min: 1, integer: true }) ?? 20;
+    const limit = Math.min(requestedLimit, 100);
+    const skip = (page - 1) * limit;
 
     const normalized = {
         difficulty: safeFilters.difficulty ? String(safeFilters.difficulty).trim() : undefined,
@@ -450,20 +454,47 @@ export const getAllRecipes = async (userId, filters = {}) => {
         };
     }
 
+    const buildPagination = (totalItems) => {
+        const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / limit);
+
+        return {
+            page,
+            limit,
+            totalItems,
+            totalPages,
+            hasPreviousPage: page > 1,
+            hasNextPage: page < totalPages
+        };
+    };
+
+    if (
+        normalized.minTotalTimeInMinutes === undefined &&
+        normalized.maxTotalTimeInMinutes === undefined
+    ) {
+        const [recipes, totalItems] = await prisma.$transaction([
+            prisma.recipe.findMany({
+                where,
+                select: recipeSelect,
+                orderBy: { title: 'asc' },
+                skip,
+                take: limit
+            }),
+            prisma.recipe.count({ where })
+        ]);
+
+        return {
+            items: recipes,
+            pagination: buildPagination(totalItems)
+        };
+    }
+
     const recipes = await prisma.recipe.findMany({
         where,
         select: recipeSelect,
         orderBy: { title: 'asc' }
     });
 
-    if (
-        normalized.minTotalTimeInMinutes === undefined &&
-        normalized.maxTotalTimeInMinutes === undefined
-    ) {
-        return recipes;
-    }
-
-    return recipes.filter((recipe) => {
+    const filteredRecipes = recipes.filter((recipe) => {
         const totalTimeInMinutes =
             (Number(recipe.prepTimeInMinutes) || 0) +
             (Number(recipe.cookingTimeInMinutes) || 0);
@@ -484,6 +515,11 @@ export const getAllRecipes = async (userId, filters = {}) => {
 
         return true;
     });
+
+    return {
+        items: filteredRecipes.slice(skip, skip + limit),
+        pagination: buildPagination(filteredRecipes.length)
+    };
 };
 
 export const getRecipeDrafts = async (userId) => {
